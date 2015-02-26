@@ -1,0 +1,8 @@
+* fix detection of reinserted card
+-- Michael Braun <michael-dev@fami-braun.de>  Sun, 25 May 2008 14:15:41 +0200
+
+* enable ctn to select card reader
+-- Michael Braun <michael-dev@fami-braun.de>  Fri, 30 Jan 2009 17:00:41 +0100
+
+* release 0.3
+-- Michael Braun <michael-dev@fami-braun.de>  Fri, 30 Jan 2009 17:00:41 +0100

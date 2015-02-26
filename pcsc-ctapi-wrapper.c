@@ -176,7 +176,18 @@ extern IS8 CT_init(IU16 ctn, IU16 pn)
   	    {
 		DEBUG_MESSAGE("CT_init: processing \"%s\", counter=%d \n",ptr,nbReaders);
 		nbReaders++;
+#ifdef USE_PORT_BASE1
 		if (nbReaders == pn) break;
+#endif
+#ifdef USE_PORT_BASE0
+		if (nbReaders-1 == pn) break;
+#endif
+#ifdef USE_CTN_BASE1
+		if (nbReaders == ctn) break;
+#endif
+#ifdef USE_CTN_BASE0
+		if (nbReaders-1 == ctn) break;
+#endif
 		ptr += strlen(ptr)+1;
             }
 	}   
