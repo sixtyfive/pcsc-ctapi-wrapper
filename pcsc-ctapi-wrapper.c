@@ -1,9 +1,11 @@
 /*
- * pcsc-ctapi-wrapper.c - v0.1
+ * pcsc-ctapi-wrapper.c - v0.2
  * (c) 2005 Patrick Schlangen <info@b1g.de>
+ * (c) 2008 Michael Braun <michael-dev@fami-braun.de>
  *
  * Allows you to use your PCSC-only-cardreader in a CTAPI-only-application
  * Tested with Moneyplex + PCSC-lite + SCM SCR243 PCMCIA + T1-HBCI-card
+ *             StarMoney on Linux + PCSC-lite + Chipdrive micro 130
  * May not have a complete and correct CT-BCS implementation
  *
  * -----------------------------------------------------------------------------
@@ -23,8 +25,10 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <wintypes.h>		// provided by pcsc-lite
 #include <winscard.h>		// provided by pcsc-lite
+#include <string.h>
 
 #ifndef TRUE
 #define TRUE 1
@@ -59,15 +63,24 @@ bool ConnectCard()
 {
 	DWORD dwActiveProtocol = -1;
 	long rv;
+	#ifdef DEBUG
+	printf("ConnectCard()");
+	#endif 
 	rv = SCardConnect(hContext, szReaders, SCARD_SHARE_EXCLUSIVE,
 			SCARD_PROTOCOL_T1 | SCARD_PROTOCOL_T0, &hCard, &dwActiveProtocol);
 	if(rv == SCARD_S_SUCCESS)
 	{
+		#ifdef DEBUG
+		printf(": true\n");
+		#endif 
 		bConnected = TRUE;
 		return(TRUE);
 	}
 	else
 	{
+		#ifdef DEBUG
+		printf(": false (%s)\n",pcsc_stringify_error(rv));
+		#endif 
 		bConnected = FALSE;
 		return(FALSE);
 	}
@@ -90,8 +103,8 @@ IS8 CT_init(IU16 ctn, IU16 pn)
 	if(rv != SCARD_S_SUCCESS)
 	{
 		#ifdef DEBUG
-		printf("CT_init: SCardEstablishContext failed (0x%08X)\n",
-					rv);
+		printf("CT_init: SCardEstablishContext failed (0x%08X) (%s)\n",
+					rv, pcsc_stringify_error(rv));
 		#endif
 		return(CTAPI_ERR_CT);
 	}
@@ -101,8 +114,8 @@ IS8 CT_init(IU16 ctn, IU16 pn)
 	if(rv != SCARD_S_SUCCESS)
 	{
 		#ifdef DEBUG
-		printf("CT_init: SCardListReaders failed (0x%08X)\n",
-					rv);
+		printf("CT_init: SCardListReaders failed (0x%08X) (%s)\n",
+					rv, pcsc_stringify_error(rv));
 		#endif
 		return(CTAPI_ERR_CT);
 	}
@@ -122,30 +135,46 @@ IS8 CT_init(IU16 ctn, IU16 pn)
 	if(rv != SCARD_S_SUCCESS)
 	{
 		#ifdef DEBUG
-		printf("CT_init: SCardListReaders failed (0x%08X)\n",
-					rv);
+		printf("CT_init: SCardListReaders failed (0x%08X) (%s)\n",
+					rv, pcsc_stringify_error(rv));
 		#endif
 		return(CTAPI_ERR_CT);
 	}
 	
 	// get readers count
+	// only counts until first reader name is ended
+	// as nameA\0NameB\0NameC\0\0 is returned
 	nbReaders = 0;
 	ptr = szReaders;
-	while(*ptr != '\0')
-	{
-		ptr += strlen(ptr)+1;
-		nbReaders++;
-	}
-
-	// no readers found?
-	if(nbReaders == 0)
-	{
+        if (*ptr == '\0') {
+		// no readers found?
 		#ifdef DEBUG
 		printf("CT_init: No readers found\n");
 		#endif
 		return(CTAPI_ERR_CT);
-	}
-	
+        } else {
+	   // as long as we did not reach end of multi-reader list
+	   while(*ptr != '\0')
+  	    {
+		#ifdef DEBUG
+		printf("CT_init: processing \"%s\", counter=%d \n",ptr,nbReaders);
+		#endif
+		nbReaders++;
+		if (nbReaders == pn) break;
+		ptr += strlen(ptr)+1;
+            }
+	}   
+	if (*ptr != '\0') {
+ 	  char* temp = malloc(strlen(ptr)+1);
+	  strcpy(temp,ptr);
+	  if (szReaders != NULL) free(szReaders);
+	  szReaders = temp;
+        }
+
+	#ifdef DEBUG
+	printf("CT_init: selected reader: \"%s\"\n",szReaders);
+	#endif
+ 	
 	bConnected = FALSE;
 	myCtn = ctn;
 	return(CTAPI_OK);
@@ -189,6 +218,9 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 				// reset CT
 				if(command[2] == 0x00)
 				{
+					#ifdef DEBUG 
+					printf("CT_data: reset CT - no action\n");
+					#endif
 					// not needed, just return OK
 					*lenr = 2;
 					response[0] = 0x90;
@@ -204,8 +236,8 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 					if(rv != SCARD_S_SUCCESS)
 					{
 						#ifdef DEBUG
-						printf("CT_data: SCardReconnect failed (0x%08X)\n",
-									rv);
+						printf("CT_data: SCardReconnect failed (0x%08X) (%s)\n",
+									rv,pcsc_stringify_error(rv));
 						#endif
 						return(CTAPI_ERR_CT);
 					}
@@ -219,13 +251,16 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 						if(rv != SCARD_S_SUCCESS)
 						{
 							#ifdef DEBUG 
-							printf("CT_data: SCardStatus failed (0x%08X)\n",
-										rv);
+							printf("CT_data: SCardStatus failed (0x%08X) (%s)\n",
+										rv, pcsc_stringify_error(rv));
 							#endif
 							return(CTAPI_ERR_CT);
 						}
 						if(2 + dwAtrSize > *lenr)
 						{
+							#ifdef DEBUG 
+							printf("CT_data: ERR at %s:%d\n",__FILE__,__LINE__);
+							#endif
 							return(CTAPI_ERR_MEMORY);
 						}
 						else
@@ -236,6 +271,9 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 							response[dwAtrSize+1] = 0x00;
 							*sad = *dad;
 							*dad = 0x02;
+							#ifdef DEBUG 
+							printf("CT_data: return 0x9000 at %s:%d\n",__FILE__,__LINE__);
+							#endif
 							return(CTAPI_OK);
 						}
 					}
@@ -249,6 +287,9 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 					}
 					else 
 					{
+						#ifdef DEBUG
+						printf("CT_data: dummy result at %s:%d\n",__FILE__,__LINE__);
+						#endif
 						// return nothing
 						*lenr = 2;
 						response[0] = 0x90;
@@ -262,6 +303,9 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 				// request ICC
 				if(!bConnected && !ConnectCard())
 				{
+					#ifdef DEBUG 
+					printf("CT_data: ERR: card not connect or cannot connect to card.\n");
+					#endif
 					*lenr = 2;
 					response[0] = 0x62;
 					response[1] = 0x00;
@@ -273,18 +317,40 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 				BYTE pbAtr[MAX_ATR_SIZE];
 				DWORD dwZero = 0, dwState, dwProtocol, dwAtrSize = sizeof(pbAtr);
 				rv = SCardStatus(hCard, NULL, &dwZero, &dwState, &dwProtocol, pbAtr, &dwAtrSize);
+			        if (rv != SCARD_S_SUCCESS) {
+					#ifdef DEBUG
+					printf("SCardState not successfull with error %X (%s) at %s:%d\n",rv, pcsc_stringify_error(rv), __FILE__,__LINE__);
+					#endif
+					rv = SCardDisconnect(hCard, SCARD_UNPOWER_CARD);
+					#ifdef DEBUG
+					printf("  Disconnect: %s\n",pcsc_stringify_error(rv));
+					#endif
+					ConnectCard();
+				        dwZero = 0, dwState, dwProtocol, dwAtrSize = sizeof(pbAtr);
+					rv = SCardStatus(hCard, NULL, &dwZero, &dwState, &dwProtocol, pbAtr, &dwAtrSize);
+					#ifdef DEBUG
+					if (rv != SCARD_S_SUCCESS) 
+						printf("SCardState (II.) not successfull with error %X (%s) at %s:%d\n",rv, pcsc_stringify_error(rv), __FILE__,__LINE__);
+					#endif
+				}
 				
 				// card present?
-				if(dwState |= SCARD_PRESENT)
+				if(dwState &= SCARD_PRESENT)
 				{
 					if(command[3] == 0x01)
 					{
 						if(2 + dwAtrSize > *lenr)
 						{
+							#ifdef DEBUG
+							printf("CT_data: ERR at %s:%d\n",__FILE__,__LINE__);
+							#endif
 							return(CTAPI_ERR_MEMORY);
 						}
 						else
 						{
+							#ifdef DEBUG
+							printf("CT_data: result\n  atr: %X\n  state:%X\n  Proto:%X\n   at %s:%d\n",response, dwState, dwProtocol, __FILE__,__LINE__);
+							#endif
 							*lenr = dwAtrSize + 2;
 							memcpy(response, pbAtr, dwAtrSize);
 							response[dwAtrSize] = 0x90;
@@ -304,6 +370,9 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 					}
 					else
 					{
+						#ifdef DEBUG 
+						printf("CT_data: dummy result at %s:%d\n",__FILE__,__LINE__);
+						#endif
 						*lenr = 2;
 						response[0] = 0x90;
 						response[1] = 0x00;
@@ -314,6 +383,9 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 				}
 				else
 				{
+					#ifdef DEBUG 
+					printf("CT_data: dummy result at %s:%d\n",__FILE__,__LINE__);
+					#endif
 					*lenr = 2;
 					response[0] = 0x62;
 					response[1] = 0x00;
@@ -324,6 +396,9 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 				break;
 				
 			case 0x15:
+				#ifdef DEBUG 
+				printf("CT_data: eject\n");
+				#endif
 				// eject ICC
 				if(bConnected)
 					SCardDisconnect(hCard, SCARD_UNPOWER_CARD);
@@ -342,6 +417,9 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 		// command goes to card
 		if(!bConnected && !ConnectCard())
 		{
+			#ifdef DEBUG 
+			printf("CT_data: ERR: no card. at %s:%d\n",__FILE__,__LINE__);
+			#endif
 			*lenr = 2;
 			response[0] = 0x62;
 			response[1] = 0x00;
@@ -360,8 +438,8 @@ IS8 CT_data(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *command, IU16 *lenr, I
 		if(rv != SCARD_S_SUCCESS)
 		{
 			#ifdef DEBUG
-			printf("CT_data: SCardTransmit failed (0x%08x)\n",
-					rv);
+			printf("CT_data: SCardTransmit failed (0x%08x) (%s)\n",
+					rv, pcsc_stringify_error(rv));
 			#endif
 			return(CTAPI_ERR_INVALID);
 		}
