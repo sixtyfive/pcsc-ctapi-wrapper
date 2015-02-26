@@ -1,40 +1,39 @@
 pcsc-ctapi-wrapper
 ------------------
 
-Ermoeglicht die Benutzung von Chipkartenlesern, die nur
-ein PCSC-Interface haben (z.B. SCM SCR243 / Towitoko Chipdrive
-PCMCIA) in Anwendungen, die nur CTAPI-Leser unerstuetzen
-(z.B. Moneyplex, StarMoney on Linux). Der Wrapper ist ein CTAPI-
-Modul, das die Funktionen in PCSC-Funktionen umwandelt. Es wird
-also ein funktionierender Chipkartenleser mit PCSC-Interface
-vorausgesetzt. Der Wrapper unterstuetzt die Eingabe der Pin am
-Kartenleser NICHT. Es wird nur die Eingabe der Pin am PC
-unterstuetzt.
+Allows using chipcard readers using a PCSC interface with software supporting CTAPI readers only. The wrapper is basically a CTAPI module which translates the CTAPI functions into PCSC functions, so a working chipcard reader with a PCSC interface is needed. The wrapper does *not* support entering the PIN into the chipcard reader, only entering the PIN through the computer's keyboard is supported.
 
-Software-Voraussetzungen:
-	- gcc
-	- pcsc-lite
-	- pcsc-lite includes/libraries
+Working chipcard readers include, but are possibly not limited to:
 
-Installation:
-	1. Den Wrapper mit "make" compilieren
-	2. Den Wrapper mit "make install" (als root) installieren
+* Cyberjack e-com/Pinpad
+* Cyberjack RFID/Standard
+* Cyberjack RFID/Komfort
+* SmartBoard G83-6744
+* ST-1044U
+* ST-1044U
+* Chipdrive Micro / Towitoko Kartenzwerg
+* Chipdrive Pinpad / SCM SPR 532
+* Chipdrive Pinpad pro / SCM SPR 532
+* SCR 335 (Chipdrive micro pro)
+* Omnikey CardMan Mobile 4040 PCMCIA
 
-Um den Wrapper zu nutzen, muss wie gesagt der pcscd laufen
-und korrekt eingerichtet sein. 
+This list is taken from http://www.willuhn.de/wiki/doku.php?id=support:list:kartenleser#scm_chipdrive. Please note that it has been documented there for certain readers to work with certain versions of this wrapper library (all known ones are in the GitHub repository at https://github.com/sixtyfive/pcsc-ctapi-wrapper). Further work on this library might be necessary in order to support everything "out of the box" and without hassle.
 
-Man kann nach der Installation dann z.B. in Moneyplex als CTAPI-
-Treiber die Datei "/usr/local/lib/libpcsc-ctapi-wrapper.so"
-verwenden, um auf den Chipkartenleser zuzugreifen. Sollten in 
-PCSC-lite mehrere Kartenleser konfiguriert sein, wird der erste
-verwendet, der gefunden wird.
+Software that should be able to work with pcsc-ctapi-wrapper:
 
-In StarMoney on Linux muss der Wine-Wrapper ctapi32.dll benutzt
-werden, der seinerseits den in die Registry eingetragenen Wrapper
-libpcsc-ctapi-wrapper.so anzieht (siehe Beschreibung auf
-http://www.starmoney.de/index.php?linux ). Sollten in PCSC-lite
-mehrere Kartenleser konfiguriert sein, so kann ueber das
-Chipkartenleser-Setup der gewuenschte Port eingestellt werden.
+* Moneyplex
+* StarMoney on Linux
+* GnuCash, KMyMoney, etc. through libapbanking
+* Jameica/Hibiscus (the library is configured by default to work with Jameica/Hibiscus)
 
-ACHTUNG: Der Wrapper wurde nur mit wenigen Kartenleser- und
-Treiber-Konfigurationen getestet.
+Requirements for compilation are currently:
+
+* gcc
+* pcsc-lite (binaries as well as headers and libraries)
+
+For installation please take a look at the Makefile and adjust according to your needs. Then simply:
+
+1. make
+2. sudo make install
+
+Further information on how to use the wrapper should be available on the websites of the software you are trying to use it with. This README file used to include notes on Moneyplex and StarMoney in specific. These can still be found in older revisions, e.g. through GitHub.
