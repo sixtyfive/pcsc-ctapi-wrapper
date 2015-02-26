@@ -1,6 +1,6 @@
 CC = gcc
-DESTDIR?=
-CFLAGS = -O2 -Wall -I /usr/include/PCSC/ -fPIC -D_REENTRANT -D USE_PORT_BASE1
+DESTDIR = /usr/local/lib
+CFLAGS = -O2 -Wall -I /usr/include/PCSC/ -fPIC -D_REENTRANT -D USE_CTN_BASE0
 
 # chose from
 #   USE_PORT_BASE1 (Matrica: Moneyplex)
@@ -18,21 +18,20 @@ CFLAGS = -O2 -Wall -I /usr/include/PCSC/ -fPIC -D_REENTRANT -D USE_PORT_BASE1
 #   use the last reader returned by pcsc
 
 pcsc-ctapi-wrapper: pcsc-ctapi-wrapper.o
-	$(CC) $(CFLAGS) -shared -o libpcsc-ctapi-wrapper.so.0.4 -Wl,-soname="libpcsc-ctapi-wrapper.so.0",-z,defs pcsc-ctapi-wrapper.o -lpcsclite
+	$(CC) $(CFLAGS) -shared -o pcsc-ctapi-wrapper.so -Wl,-soname="pcsc-ctapi-wrapper.so",-z,defs pcsc-ctapi-wrapper.o -lpcsclite
 	strip --strip-unneeded pcsc-ctapi-wrapper.o
 
 pcsc-ctapi-wrapper.o: pcsc-ctapi-wrapper.c
 	$(CC) $(CFLAGS) -c -fPIC pcsc-ctapi-wrapper.c
 
 clean:
-	rm -f libpcsc-ctapi-wrapper.so.0.4 pcsc-ctapi-wrapper.o
+	rm -f pcsc-ctapi-wrapper.so pcsc-ctapi-wrapper.o
 
 install: pcsc-ctapi-wrapper
-	install -d $(DESTDIR)/usr/lib
-	install -m644 libpcsc-ctapi-wrapper.so.0.4 $(DESTDIR)/usr/lib
-	ldconfig -l $(DESTDIR)/usr/lib/libpcsc-ctapi-wrapper.so.0.4
+	install -d $(DESTDIR)
+	install -m644 pcsc-ctapi-wrapper.so $(DESTDIR)
+	ldconfig -l $(DESTDIR)/pcsc-ctapi-wrapper.so
 
 uninstall: pcsc-ctapi-wrapper
-	rm $(DESTDIR)/usr/lib/libpcsc-ctapi-wrapper.so
-	rm $(DESTDIR)/usr/lib/libpcsc-ctapi-wrapper.so.0.4
+	rm $(DESTDIR)/libpcsc-ctapi-wrapper.so
 	ldconfig
