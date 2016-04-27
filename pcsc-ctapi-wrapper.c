@@ -654,7 +654,7 @@ static IS8 PerformVerification(IU16 ctn, IU8 *dad, IU8 *sad, IU16 lenc, IU8 *com
 	
 	// Performing verification:
 	nBytesReturned = 0;
-	nResult = SCardControl(hCard, dwControlCode, pPVS, sizeof(PIN_VERIFY_STRUCTURE)-sizeof(pPVS->abData)+nPinApduLength,
+	nResult = SCardControl(hCard, dwControlCode, pPVS, sizeof(PIN_VERIFY_STRUCTURE)-sizeof(&pPVS->abData)+nPinApduLength,
 			aOutput, sizeof(aOutput), &nBytesReturned);
 	if (nResult != SCARD_S_SUCCESS)
 	{
