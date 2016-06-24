@@ -1,6 +1,6 @@
 CC = gcc
 DESTDIR = /usr/local/lib
-CFLAGS = -O2 -Wall -I /usr/include/PCSC/ -fPIC -D_REENTRANT -D USE_CTN_BASE0
+CFLAGS = -O2 -std=gnu90 -Wall -I /usr/include/PCSC/ -fPIC -D_REENTRANT -D USE_CTN_BASE0
 
 # chose from
 #   USE_PORT_BASE1 (Matrica: Moneyplex)
