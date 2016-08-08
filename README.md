@@ -31,6 +31,14 @@ Requirements for compilation are currently:
 * gcc
 * pcsc-lite (binaries as well as headers and libraries)
 
+Under Debian 9 (Stretch) the dependencies can be installed as follows:
+
+* apt install build-essential libudev-dev flex
+* git clone git://anonscm.debian.org/pcsclite/PCSC.git
+  * cd PCSC
+  * ./bootstrap
+  * ./configure --prefix=/usr/local && make && make install
+
 For installation please take a look at the Makefile and adjust according to your needs. Then simply:
 
 1. make
