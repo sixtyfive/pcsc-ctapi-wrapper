@@ -1,0 +1,3 @@
+[submodule "PCSC"]
+	path = PCSC
+	url = git://anonscm.debian.org/pcsclite/PCSC.git
