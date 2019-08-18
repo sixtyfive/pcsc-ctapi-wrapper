@@ -38,14 +38,14 @@ Dependencies
 ### Debian-based distributions
 
 ```
-apt install build-essential libudev-dev flex
+apt install build-essential libudev-dev flex ccid
 ```
 
 ### Solus
 
 ```
 eopkg it -c system.devel
-eopkg it pcsc-tools pcsc-lite pcsc-lite-devel
+eopkg it ccid pcsc-tools pcsc-lite pcsc-lite-devel
 ```
 
 Building
