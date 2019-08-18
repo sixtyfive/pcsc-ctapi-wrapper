@@ -1,5 +1,5 @@
 CC = gcc
-DESTDIR = /usr/local/lib
+DESTDIR = /usr/lib
 CFLAGS = -O2 -std=gnu90 -Wall -I /usr/include/PCSC/ -fPIC -D_REENTRANT -D USE_CTN_BASE0
 
 # chose from
